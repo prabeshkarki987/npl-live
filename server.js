@@ -106,6 +106,63 @@ function demoData() {
   };
 }
 
+// ---------- scorecard (match details) ----------
+function normalizeCard(d) {
+  const innings = (d.scorecard || []).map((s) => ({
+    name: s.inning || "",
+    batting: (s.batting || []).map((b) => ({
+      name: (b.batsman && b.batsman.name) || "",
+      out: b["dismissal-text"] || b.dismissal || "",
+      r: b.r, b: b.b, fours: b["4s"], sixes: b["6s"], sr: b.sr,
+    })),
+    bowling: (s.bowling || []).map((b) => ({
+      name: (b.bowler && b.bowler.name) || "",
+      o: b.o, m: b.m, r: b.r, w: b.w, eco: b.eco,
+    })),
+  }));
+  return {
+    id: d.id, name: d.name || "", status: d.status || "", venue: d.venue || "",
+    date: d.dateTimeGMT ? d.dateTimeGMT + (String(d.dateTimeGMT).endsWith("Z") ? "" : "Z") : d.date || "",
+    toss: d.tossWinner ? `${d.tossWinner} chose to ${d.tossChoice || ""}`.trim() : "",
+    winner: d.matchWinner || "",
+    innings,
+  };
+}
+
+function demoCard(id) {
+  const bat = (n, out, r, b, f, s) => ({ name: `Batter ${n}`, out, r, b, fours: f, sixes: s, sr: +(r / b * 100).toFixed(2) });
+  const bowl = (n, o, m, r, w) => ({ name: `Bowler ${n}`, o, m, r, w, eco: +(r / o).toFixed(2) });
+  const base = { id, venue: "TU Cricket Ground, Kirtipur", toss: "Toss: sample data", winner: "" };
+  const inn1 = {
+    name: "Janakpur Bolts Inning 1",
+    batting: [bat(1, "c Fielder 3 b Bowler 1", 42, 31, 5, 2), bat(2, "lbw b Bowler 2", 28, 22, 3, 1), bat(3, "not out", 55, 38, 4, 3), bat(4, "b Bowler 1", 12, 9, 1, 0)],
+    bowling: [bowl(1, 4, 0, 31, 2), bowl(2, 4, 0, 36, 1), bowl(3, 4, 0, 40, 0)],
+  };
+  const inn2 = {
+    name: "Biratnagar Kings Inning 1",
+    batting: [bat(1, "c Fielder 1 b Bowler 4", 37, 26, 4, 2), bat(2, "not out", 48, 33, 5, 1), bat(3, "run out", 19, 15, 2, 0)],
+    bowling: [bowl(4, 4, 0, 29, 2), bowl(5, 3, 0, 27, 1)],
+  };
+  return { ...base, name: "Sample match (SAMPLE DATA)", status: "Sample scorecard. Real names appear when the live API is on.", innings: [inn1, inn2], demo: true };
+}
+
+const cardCache = new Map(); // id -> {at, data}
+async function getCard(id) {
+  if (DEMO) return demoCard(id);
+  const hit = cardCache.get(id);
+  const done = (c) => /won|tied|no result|abandon/i.test(c.status || "");
+  if (hit && Date.now() - hit.at < (done(hit.data) ? 600 : CACHE_SECONDS) * 1000) return hit.data;
+  try {
+    const data = normalizeCard(await api("match_scorecard", { id }));
+    cardCache.set(id, { at: Date.now(), data });
+    if (cardCache.size > 200) cardCache.delete(cardCache.keys().next().value);
+    return data;
+  } catch (e) {
+    if (hit) return { ...hit.data, stale: true };
+    throw e;
+  }
+}
+
 // ---------- cache ----------
 let cache = { at: 0, data: null, error: null };
 let inflight = null;
@@ -132,6 +189,19 @@ http.createServer(async (req, res) => {
       const d = await getData();
       res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
       res.end(JSON.stringify({ updated: new Date().toISOString(), ...d }));
+    } catch (e) {
+      res.writeHead(502, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+  if (url.pathname === "/api/match") {
+    const id = url.searchParams.get("id") || "";
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) { res.writeHead(400, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ error: "bad id" })); }
+    try {
+      const d = await getCard(id);
+      res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+      res.end(JSON.stringify(d));
     } catch (e) {
       res.writeHead(502, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: e.message }));
