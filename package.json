@@ -1,0 +1,8 @@
+{
+  "name": "npl-live-score",
+  "version": "1.0.0",
+  "description": "Live score website for the Nepal Premier League",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
