@@ -66,8 +66,8 @@
   .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;gap:10px}
   .team{display:flex;align-items:center;gap:10px;font-weight:650;min-width:0}
   .team span.nm{overflow:hidden;text-overflow:ellipsis}
-  .logo{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;overflow:hidden;flex:none;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
-  .logo img{width:100%;height:100%;object-fit:cover;background:#fff}
+  .logo{position:relative;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;overflow:hidden;flex:none;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+  .logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:3px;background:#fff}
   .score{font-variant-numeric:tabular-nums;font-weight:800;font-size:19px;white-space:nowrap}
   .score small{font-weight:500;color:var(--mute);font-size:12.5px;margin-left:4px}
   .status{margin-top:4px;padding-top:9px;border-top:1px dashed var(--line);font-size:13.5px;display:flex;justify-content:space-between;gap:8px}
@@ -193,9 +193,14 @@ const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&
 /* ---------- helpers ---------- */
 function hue(name){ let h=0; for(const ch of String(name)) h=(h*31+ch.charCodeAt(0))%360; return h; }
 function tcol(name, l=42){ return `hsl(${hue(name)} 62% ${l}%)`; }
+// Logos: put a picture named after the team's short code in the "logos" folder,
+// e.g. logos/bir.png for BIR. If the file is missing, coloured initials show instead.
+// The data source only sends one generic placeholder icon for every team, so it is ignored.
 function logo(tm){
-  const inner = tm.img ? `<img src="${esc(tm.img)}" alt="" onerror="this.remove()">` : esc((tm.short||tm.name).slice(0,3));
-  return `<span class="logo" style="background:linear-gradient(135deg,${tcol(tm.name,48)},${tcol(tm.name,30)})">${inner}</span>`;
+  const code = (tm.short || tm.name.slice(0,3)).toLowerCase().replace(/[^a-z0-9]/g,"");
+  const real = tm.img && !/h\.cricapi\.com\/img\/icon/i.test(tm.img) ? tm.img : `logos/${code}.png`;
+  return `<span class="logo" style="background:linear-gradient(135deg,${tcol(tm.name,48)},${tcol(tm.name,30)})">`
+    + `<span>${esc((tm.short||tm.name).slice(0,3))}</span><img src="${esc(real)}" alt="" onerror="this.remove()"></span>`;
 }
 function teamHTML(tm){ return `<span class="team">${logo(tm)}<span class="nm">${esc(tm.name)}</span></span>`; }
 function scoreFor(m, tm){
