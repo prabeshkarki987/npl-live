@@ -1,0 +1,14 @@
+{
+  "_help": "Official NPL points table (W = won, L = lost, NR = tied or no result) as it stood after match number 'afterMatch'. Points are worked out for you: 2 per win, 1 per NR. The website adds every match AFTER that number by itself. Keep the team names exactly as below (they match the data source). Keep the teams in the official order: it is used to order teams that are level on points and wins, because net run rate is not calculated. Leave all numbers at 0 to switch this off.",
+  "afterMatch": 13,
+  "teams": [
+    { "name": "Lumbini Lions",        "w": 2, "l": 0, "nr": 1 },
+    { "name": "Biratnagar Kings",     "w": 2, "l": 2, "nr": 0 },
+    { "name": "Karnali Yaks",         "w": 2, "l": 1, "nr": 0 },
+    { "name": "Janakpur Bolts",       "w": 2, "l": 2, "nr": 0 },
+    { "name": "Sudur Paschim Royals", "w": 2, "l": 2, "nr": 0 },
+    { "name": "Chitwan Rhinos",       "w": 1, "l": 1, "nr": 1 },
+    { "name": "Kathmandu Gorkhas",    "w": 1, "l": 1, "nr": 0 },
+    { "name": "Pokhara Avengers",     "w": 0, "l": 3, "nr": 0 }
+  ]
+}
